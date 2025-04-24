@@ -48,15 +48,27 @@ void cPlayerDefensiveShipsManager::Initialize() {
 	PropManager.GetPropertyList(0x4E5855B9, 0x0568de14, propListRelationship);
 
 	eastl::vector<int> readVector;
+	int maxDefenders;
+	int minDefenders;
 
 	App::Property::GetArrayInt32(propListRelationship.get(), 0x067B69EB, readVector);
-	maxColonyDefenders = readVector[0];
+	maxDefenders = readVector[0];
+	App::Property::GetArrayInt32(propListRelationship.get(), 0x067B69D8, readVector);
+	minDefenders = readVector[0];
+	playerColonyDefenders = (maxDefenders + minDefenders + 1) / 2; // Average with rounding up.
+
 
 	App::Property::GetArrayInt32(propListRelationship.get(), 0x067B69F1, readVector);
-	maxHomeworldDefenders = readVector[0];
+	maxDefenders = readVector[0];
+	App::Property::GetArrayInt32(propListRelationship.get(), 0x067B69E3, readVector);
+	minDefenders = readVector[0];
+	playerHomeworldDefenders = (maxDefenders + minDefenders + 1) / 2;
 
 	App::Property::GetArrayInt32(propListRelationship.get(), 0x067B69D0, readVector);
-	maxOutpostDefenders = readVector[0];
+	maxDefenders = readVector[0];
+	App::Property::GetArrayInt32(propListRelationship.get(), 0x067B69C4, readVector);
+	minDefenders = readVector[0];
+	playerOutpostDefenders = (maxDefenders + minDefenders + 1) / 2;
 
 	PropertyListPtr propListSpaceCombat;
 	PropManager.GetPropertyList(id(u"SpaceCombat"), 0x02ae0c7e, propListSpaceCombat);
@@ -115,13 +127,13 @@ cGameDataUFO* cPlayerDefensiveShipsManager::SpawnPlayerDefensiveShip() {
 
 int cPlayerDefensiveShipsManager::GetMaxDefenders(cPlanetRecord* planet) {
 	if (planet->mbHomeWorld) {
-		return maxHomeworldDefenders;
+		return playerHomeworldDefenders;
 	}
 	else if (planet->mType == PlanetType::T0) {
-		return maxOutpostDefenders;
+		return playerOutpostDefenders;
 	}
 	else {
-		return maxColonyDefenders;
+		return playerColonyDefenders;
 	}
 }
 

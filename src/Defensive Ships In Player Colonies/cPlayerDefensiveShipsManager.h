@@ -80,9 +80,9 @@ public:
 
 private:
 	static cPlayerDefensiveShipsManager* instance;
-	int maxOutpostDefenders;
-	int maxColonyDefenders;
-	int maxHomeworldDefenders;
+	int playerOutpostDefenders;
+	int playerColonyDefenders;
+	int playerHomeworldDefenders;
 	float reinforceTime;
 	eastl::set<SimScheduledTaskListenerPtr> scheduledTasks; // set for easier search.
 	queue<cPlanetRecordPtr> planetsToReinforce;

@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <mod description="" displayName="Defensive Ships In Player Colonies" dllsBuild="$SPOREMOD_DLLS_BUILD" githubUrl="https://github.com/Sadicto/Defensive-Ships-In-Player-Colonies" hasCustomInstaller="false" installerSystemVersion="1.0.1.2" isExperimental="$SPOREMOD_EXPERIMENTAL" unique="DefensiveShipsInPlayerColonies" websiteUrl="https://github.com/Sadicto/Defensive-Ships-In-Player-Colonies">
   <prerequisite game="GalacticAdventures">Defensive_Ships_In_Player_Colonies.package</prerequisite>
+  <prerequisite>Defensive Ships In Player Colonies.dll</prerequisite>
 </mod>
