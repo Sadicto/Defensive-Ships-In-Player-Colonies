@@ -73,7 +73,7 @@ void cPlayerDefensiveShipsManager::Initialize() {
 	PropertyListPtr propListSpaceCombat;
 	PropManager.GetPropertyList(id(u"SpaceCombat"), 0x02ae0c7e, propListSpaceCombat);
 
-	App::Property::GetFloat(propListSpaceCombat.get(), 0x05C2CBD6, reinforceTime);
+	App::Property::GetFloat(propListSpaceCombat.get(), 0x05C2CBC5, reinforceTime);
 
 }
 
