@@ -29,6 +29,8 @@ public:
 	void Update(int deltaTime, int deltaGameTime) override;
 	bool WriteToXML(XmlSerializer* xml) override;
 
+	void OnModeEntered(uint32_t previousModeID, uint32_t newModeID) override;
+
 	void OnModeExited(uint32_t previousModeID, uint32_t newModeID) override;
 
 	/// @brief Handles the kMsgCombatantKilled message. 
@@ -87,5 +89,8 @@ private:
 	eastl::set<SimScheduledTaskListenerPtr> scheduledTasks; // set for easier search.
 	queue<cPlanetRecordPtr> planetsToReinforce;
 	eastl::map<cPlanetRecordPtr, int> planetDefenderShips;
+
+	int elapsedTime;
+	int cycleInterval;
 
 };

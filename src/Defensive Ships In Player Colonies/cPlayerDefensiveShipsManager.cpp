@@ -40,10 +40,10 @@ Simulator::Attribute cPlayerDefensiveShipsManager::ATTRIBUTES[] = {
 
 void cPlayerDefensiveShipsManager::Initialize() {
 	instance = this;
+	elapsedTime = 0;
+	cycleInterval = 60000 * 5;
 
 	MessageManager.AddListener(this, SimulatorMessages::kMsgCombatantKilled);
-	ManualBreakpoint();
-	uint32_t ID = id(u"maxColonyDefenders~");
 	PropertyListPtr propListRelationship;
 	PropManager.GetPropertyList(0x4E5855B9, 0x0568de14, propListRelationship);
 
@@ -82,18 +82,35 @@ void cPlayerDefensiveShipsManager::Dispose() {
 }
 
 void cPlayerDefensiveShipsManager::Update(int deltaTime, int deltaGameTime) {
-	
+	if (IsSpaceGame()) {
+		elapsedTime += deltaGameTime;
+		if (elapsedTime > cycleInterval) {
+			// Every cycle remove expired scheduledTasks
+			for (auto it = scheduledTasks.begin(); it != scheduledTasks.end(); ) {
+				if ((*it)->HasExecuted()) {
+					it = scheduledTasks.erase(it);
+				}
+				else {
+					++it;
+				}
+			}
+			elapsedTime = 0;
+		}
+	}
 }
 
-cPlayerDefensiveShipsManager* cPlayerDefensiveShipsManager::Get(){
-	return instance;
+void cPlayerDefensiveShipsManager::OnModeEntered(uint32_t previousModeID, uint32_t newModeID) {
+	if (newModeID == GameModeIDs::kGameSpace) {
+		elapsedTime = 0;
+	}
+	cStrategy::OnModeEntered(previousModeID, newModeID); //idk if it is necessary.
 }
 
 void cPlayerDefensiveShipsManager::OnModeExited(uint32_t previousModeID, uint32_t newModeID) {
 	if (previousModeID == GameModeIDs::kGameSpace) {
 		for (SimScheduledTaskListenerPtr scheluded : scheduledTasks) {
 			if (!scheluded->HasExecuted()) {
-				Simulator::RemoveScheduledTask(scheluded);
+				Simulator::RemoveScheduledTask(scheluded); // Cancel active scheduledTasks.
 			}
 		}
 		scheduledTasks.clear();
@@ -103,6 +120,7 @@ void cPlayerDefensiveShipsManager::OnModeExited(uint32_t previousModeID, uint32_
 		planetDefenderShips.clear();
 
 	}
+	cStrategy::OnModeExited(previousModeID, newModeID);
 }
 
 bool cPlayerDefensiveShipsManager::HandleMessage(uint32_t messageID, void* msg) {
@@ -110,19 +128,24 @@ bool cPlayerDefensiveShipsManager::HandleMessage(uint32_t messageID, void* msg) 
 		CombatantKilledMessage* msgInfo = static_cast<CombatantKilledMessage*>(msg);
 		cCombatant* combatant = msgInfo->GetCombatant();
 		cGameDataUFO* ufo = object_cast<cGameDataUFO>(combatant);
-		if (ufo && 
+		if (ufo &&
+			GetCurrentContext() == SpaceContext::Planet &&
 			ufo->mUFOType == static_cast<int>(UfoType::Defender) &&
 			ufo->mPoliticalID == GetPlayerEmpireID()) {
-			DecreaseDefendersOnPlanet(GetActivePlanetRecord()); // Test it in combat not in a planet!
+			DecreaseDefendersOnPlanet(GetActivePlanetRecord());
 		}
 	}
 	return true;
 }
 
+cPlayerDefensiveShipsManager* cPlayerDefensiveShipsManager::Get(){
+	return instance;
+}
+
 cGameDataUFO* cPlayerDefensiveShipsManager::SpawnPlayerDefensiveShip() {
 	int* pointerToPoliticalId = &GetPlayerEmpire()->mPoliticalID;
 	ResourceKey* ufoKey = &GetPlayerEmpire()->mUFOKey;
-	return STATIC_CALL(Address(ModAPI::ChooseAddress(0x0, 0x0102acc0)), cGameDataUFO*, Args(UfoType, int*, ResourceKey*), Args(UfoType::Defender, pointerToPoliticalId, ufoKey));
+	return STATIC_CALL(Address(ModAPI::ChooseAddress(0x0102bbb0, 0x0102acc0)), cGameDataUFO*, Args(UfoType, int*, ResourceKey*), Args(UfoType::Defender, pointerToPoliticalId, ufoKey));
 }
 
 int cPlayerDefensiveShipsManager::GetMaxDefenders(cPlanetRecord* planet) {
@@ -156,6 +179,8 @@ void cPlayerDefensiveShipsManager::DecreaseDefendersOnPlanet(cPlanetRecord* plan
 		planetDefenderShips[cPlanetRecordPtr(planet)] = GetMaxDefenders(planet) - 1;
 		SimScheduledTaskListenerPtr scheduler = Simulator::ScheduleTask(this, &cPlayerDefensiveShipsManager::AddDefenderToNextPlanetInQueue, reinforceTime);
 		scheduledTasks.insert(scheduler);
+		planetsToReinforce.push(cPlanetRecordPtr(planet));
+
 	}
 }
 

@@ -28,7 +28,7 @@ void AttachDetours()
 	// Call the attach() method on any detours you want to add
 	// For example: cViewer_SetRenderType_detour::attach(GetAddress(cViewer, SetRenderType));
 	ModAPI::GameType type = ModAPI::GetGameType();
-	GeneratePlanetHighLOD__detour::attach(Address(ModAPI::ChooseAddress(0x00ff96b0, 0x00ff96b0))); 
+	GeneratePlanetHighLOD__detour::attach(Address(ModAPI::ChooseAddress(0x00ffa340, 0x00ff96b0)));
 }
 
 
