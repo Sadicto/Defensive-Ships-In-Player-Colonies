@@ -16,6 +16,10 @@ class cPlayerDefensiveShipsManager
 	App::IMessageListener
 {
 public:
+	struct planetReinforcementStruct {
+		cPlanetRecordPtr planet;
+		int timeToReinforce;
+	};
 	static const uint32_t TYPE = id("Defensive_Ships_In_Player_Colonies::cPlayerDefensiveShipsManager");
 	static const uint32_t NOUN_ID = TYPE;
 
@@ -30,8 +34,6 @@ public:
 	bool WriteToXML(XmlSerializer* xml) override;
 
 	void OnModeEntered(uint32_t previousModeID, uint32_t newModeID) override;
-
-	void OnModeExited(uint32_t previousModeID, uint32_t newModeID) override;
 
 	/// @brief Handles the kMsgCombatantKilled message. 
 	/// If the killed combatant belongs to the player empire and was a defender ship, 
@@ -69,7 +71,7 @@ public:
 
 	/// @brief Adds a defender ship to the planet at the front of the reinforcement queue.
 	/// If the planet has not reached its maximum number of defenders, schedules another reinforcement.
-	void AddDefenderToNextPlanetInQueue();
+	void AddDefenderToPlanet(cPlanetRecord* planetToReinforce);
 
 
 	/// @brief Ensures the specified planet has the required number of defensive ships by spawning them if needed.
@@ -85,9 +87,8 @@ private:
 	int playerOutpostDefenders;
 	int playerColonyDefenders;
 	int playerHomeworldDefenders;
-	float reinforceTime;
-	eastl::set<SimScheduledTaskListenerPtr> scheduledTasks; // set for easier search.
-	queue<cPlanetRecordPtr> planetsToReinforce;
+	int reinforceTime;
+	queue<planetReinforcementStruct> planetsToReinforce;
 	eastl::map<cPlanetRecordPtr, int> planetDefenderShips;
 
 	int elapsedTime;

@@ -73,7 +73,9 @@ void cPlayerDefensiveShipsManager::Initialize() {
 	PropertyListPtr propListSpaceCombat;
 	PropManager.GetPropertyList(id(u"SpaceCombat"), 0x02ae0c7e, propListSpaceCombat);
 
-	App::Property::GetFloat(propListSpaceCombat.get(), 0x05C2CBC5, reinforceTime);
+	float reinforeTimeSeconds;
+	App::Property::GetFloat(propListSpaceCombat.get(), 0x05C2CBD6, reinforeTimeSeconds);
+	reinforceTime = reinforeTimeSeconds * 1000;
 
 }
 
@@ -84,17 +86,10 @@ void cPlayerDefensiveShipsManager::Dispose() {
 void cPlayerDefensiveShipsManager::Update(int deltaTime, int deltaGameTime) {
 	if (IsSpaceGame()) {
 		elapsedTime += deltaGameTime;
-		if (elapsedTime > cycleInterval) {
-			// Every cycle remove expired scheduledTasks
-			for (auto it = scheduledTasks.begin(); it != scheduledTasks.end(); ) {
-				if ((*it)->HasExecuted()) {
-					it = scheduledTasks.erase(it);
-				}
-				else {
-					++it;
-				}
-			}
-			elapsedTime = 0;
+		if (!planetsToReinforce.empty() && elapsedTime >= planetsToReinforce.front().timeToReinforce) {
+			cPlanetRecordPtr planet = planetsToReinforce.front().planet;
+			planetsToReinforce.pop();
+			AddDefenderToPlanet(planet.get());
 		}
 	}
 }
@@ -102,25 +97,12 @@ void cPlayerDefensiveShipsManager::Update(int deltaTime, int deltaGameTime) {
 void cPlayerDefensiveShipsManager::OnModeEntered(uint32_t previousModeID, uint32_t newModeID) {
 	if (newModeID == GameModeIDs::kGameSpace) {
 		elapsedTime = 0;
-	}
-	cStrategy::OnModeEntered(previousModeID, newModeID); //idk if it is necessary.
-}
-
-void cPlayerDefensiveShipsManager::OnModeExited(uint32_t previousModeID, uint32_t newModeID) {
-	if (previousModeID == GameModeIDs::kGameSpace) {
-		for (SimScheduledTaskListenerPtr scheluded : scheduledTasks) {
-			if (!scheluded->HasExecuted()) {
-				Simulator::RemoveScheduledTask(scheluded); // Cancel active scheduledTasks.
-			}
-		}
-		scheduledTasks.clear();
 		while (!planetsToReinforce.empty()) {
 			planetsToReinforce.pop();
 		}
 		planetDefenderShips.clear();
-
 	}
-	cStrategy::OnModeExited(previousModeID, newModeID);
+	cStrategy::OnModeEntered(previousModeID, newModeID); //idk if it is necessary.
 }
 
 bool cPlayerDefensiveShipsManager::HandleMessage(uint32_t messageID, void* msg) {
@@ -177,25 +159,26 @@ void cPlayerDefensiveShipsManager::DecreaseDefendersOnPlanet(cPlanetRecord* plan
 	}
 	else {
 		planetDefenderShips[cPlanetRecordPtr(planet)] = GetMaxDefenders(planet) - 1;
-		SimScheduledTaskListenerPtr scheduler = Simulator::ScheduleTask(this, &cPlayerDefensiveShipsManager::AddDefenderToNextPlanetInQueue, reinforceTime);
-		scheduledTasks.insert(scheduler);
-		planetsToReinforce.push(cPlanetRecordPtr(planet));
+		planetReinforcementStruct planetReinforcement;
+		planetReinforcement.planet = cPlanetRecordPtr(planet);
+		planetReinforcement.timeToReinforce = elapsedTime + reinforceTime;
+		planetsToReinforce.push(planetReinforcement);
 
 	}
 }
 
-void cPlayerDefensiveShipsManager::AddDefenderToNextPlanetInQueue() {
-	cPlanetRecordPtr planetToReinforce = planetsToReinforce.front();
-	planetsToReinforce.pop();
+void cPlayerDefensiveShipsManager::AddDefenderToPlanet(cPlanetRecord* planetToReinforce) {
 	auto it = planetDefenderShips.find(planetToReinforce); // If quequed for reinforce the planet will always be on the map.
 	if (planetToReinforce->GetStarRecord()->mEmpireID == GetPlayerEmpireID()) { // if the player still controls the planet.
 		it->second++;
-		if (it->second >= GetMaxDefenders(planetToReinforce.get())) {
+		if (it->second >= GetMaxDefenders(planetToReinforce)) {
 			planetDefenderShips.erase(it); // The map only has planets with less than the maximun number of defenders.
 		}
 		else {
-			SimScheduledTaskListenerPtr scheduler = Simulator::ScheduleTask(this, &cPlayerDefensiveShipsManager::AddDefenderToNextPlanetInQueue, reinforceTime); // Still not at maximum defenders so we start another scheduler.
-			scheduledTasks.insert(scheduler);
+			planetReinforcementStruct planetReinforcement;
+			planetReinforcement.planet = cPlanetRecordPtr(planetToReinforce);
+			planetReinforcement.timeToReinforce = elapsedTime + reinforceTime;
+			planetsToReinforce.push(planetReinforcement);
 		}
 		if (GetCurrentContext() == SpaceContext::Planet && planetToReinforce == GetActivePlanetRecord()) {
 			SpawnPlayerDefensiveShip();
