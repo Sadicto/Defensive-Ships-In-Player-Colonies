@@ -41,7 +41,6 @@ Simulator::Attribute cPlayerDefensiveShipsManager::ATTRIBUTES[] = {
 void cPlayerDefensiveShipsManager::Initialize() {
 	instance = this;
 	elapsedTime = 0;
-	cycleInterval = 60000 * 5;
 
 	MessageManager.AddListener(this, SimulatorMessages::kMsgCombatantKilled);
 	PropertyListPtr propListRelationship;
@@ -168,8 +167,8 @@ void cPlayerDefensiveShipsManager::DecreaseDefendersOnPlanet(cPlanetRecord* plan
 }
 
 void cPlayerDefensiveShipsManager::AddDefenderToPlanet(cPlanetRecord* planetToReinforce) {
-	auto it = planetDefenderShips.find(planetToReinforce); // If quequed for reinforce the planet will always be on the map.
-	if (planetToReinforce->GetStarRecord()->mEmpireID == GetPlayerEmpireID()) { // if the player still controls the planet.
+	auto it = planetDefenderShips.find(planetToReinforce); // If queued for reinforce the planet will always be on the map.
+	if (it != planetDefenderShips.end() && planetToReinforce->GetStarRecord()->mEmpireID == GetPlayerEmpireID()) { // if the player still controls the planet.
 		it->second++;
 		if (it->second >= GetMaxDefenders(planetToReinforce)) {
 			planetDefenderShips.erase(it); // The map only has planets with less than the maximun number of defenders.
@@ -196,7 +195,7 @@ void cPlayerDefensiveShipsManager::ManagePlanetDefenders(cPlanetRecord* planet) 
 		numberOfDefenders = it->second;
 	}
 	else {
-		numberOfDefenders = GetMaxDefenders(planet); // If the planet isn't in the map means that the planet has maximum defenders.
+		numberOfDefenders = GetMaxDefenders(planet); // If the planet isn't in the map it means that the planet has maximum defenders.
 	}
 	for (int i = 0; i < numberOfDefenders; i++) {
 		SpawnPlayerDefensiveShip();

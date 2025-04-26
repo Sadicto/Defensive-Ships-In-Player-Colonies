@@ -18,7 +18,7 @@ class cPlayerDefensiveShipsManager
 public:
 	struct planetReinforcementStruct {
 		cPlanetRecordPtr planet;
-		int timeToReinforce;
+		uint32_t timeToReinforce;
 	};
 	static const uint32_t TYPE = id("Defensive_Ships_In_Player_Colonies::cPlayerDefensiveShipsManager");
 	static const uint32_t NOUN_ID = TYPE;
@@ -55,27 +55,28 @@ public:
 
 
 	/// @brief Returns the maximum number of defenders allowed based on the planet type: outpost, colony, or homeworld.
-	/// @param planet Pointer to the planet record.
+	/// @param planet
 	/// @return The maximum number of defenders for the specified planet.
 	int GetMaxDefenders(cPlanetRecord* planet);
 
 	/// @brief Returns the number of defender ships currently stationed on the given planet.
-	/// @param planet Pointer to the cPlanetRecord object representing the planet.
+	/// @param planet
 	/// @return The number of defender ships on the specified planet.
 	int GetDefendersOnPlanet(cPlanetRecord* planet);
 
 	/// @brief Decreases the number of defender ships on the specified planet by one,
-	/// and creates a ScheduleTask to restore one defender in 90 seconds.
-	/// @param planet Pointer to the cPlanetRecord representing the planet.
+	/// and pushes to planetsToReinforce to ensure that the planet will be reinforced.
+	/// @param planet
 	void DecreaseDefendersOnPlanet(cPlanetRecord* planet);
 
 	/// @brief Adds a defender ship to the planet at the front of the reinforcement queue.
 	/// If the planet has not reached its maximum number of defenders, schedules another reinforcement.
+	/// @param planetToReinforce
 	void AddDefenderToPlanet(cPlanetRecord* planetToReinforce);
 
 
 	/// @brief Ensures the specified planet has the required number of defensive ships by spawning them if needed.
-	/// @param planet Pointer to the cPlanetRecord representing the planet.
+	/// @param planet
 	void ManagePlanetDefenders(cPlanetRecord* planet);
 
 
@@ -84,14 +85,20 @@ public:
 
 private:
 	static cPlayerDefensiveShipsManager* instance;
+
+	// Defenders in an outpost colony, that is, a colony with T = 0.
 	int playerOutpostDefenders;
+	// Defenders in an normal colony, that is, a colony with T > 0.
 	int playerColonyDefenders;
+	// Defenders in the homeworld.
 	int playerHomeworldDefenders;
+	// Time interval (in seconds) required to spawn a new defensive ship.
 	int reinforceTime;
+	// Queue of planets awaiting reinforcements; planetsToReinforce.front() is the next to reinforce.
 	queue<planetReinforcementStruct> planetsToReinforce;
+	// Maps each planet to its current number of defensive ships; if a planet is not present, it has the maximum number of defenders.
 	eastl::map<cPlanetRecordPtr, int> planetDefenderShips;
 
-	int elapsedTime;
-	int cycleInterval;
+	uint32_t elapsedTime;
 
 };
